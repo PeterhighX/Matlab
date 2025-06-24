@@ -159,7 +159,106 @@ writetable(sortedDataset, outputFile);
 % 显示保存信息
 disp(['已将结果保存至：', outputFile]);
 
+% ... existing code ...
+
+%% 提取目标1~3的权重并计算达成度
+
+% 获取 dataset_weight 的有效项目名（从第二行开始）
+weightRows = dataset_weight(2:end, 1); % 舍弃第一行标题
+projectNames = table2array(weightRows);
+
+% 定义有效项目名称
+validProjects = {'考勤', '平时作业', '期末考试'};
+
+% 检查前三行是否分别为 '考勤'、'平时作业'、'期末考试'
+for i = 1:length(validProjects)
+    if ~strcmp(projectNames(i), validProjects{i})
+        error('权重表格中第 %d 行的项目名称不是 "%s"，请检查数据。', i + 1, validProjects{i});
+    end
+end
+
+% 提取目标1~3的权重（第2~4行 × 第2~4列）
+targetWeights = table2array(dataset_weight(2:4, 2:4)); % 去掉第一列项目名和最后一列合计
+
+% 获取成绩表的列名
+scoreHeaders = dataset_score.Properties.VariableNames;
+
+% 找出与有效项目匹配的列索引
+[~, scoreColIndices] = ismember(validProjects, scoreHeaders);
+
+% 初始化达成度数组
+achievementScores = zeros(height(dataset_score), 3);
+
+% 遍历每位学生
+for i = 1:height(dataset_score)
+    % 提取当前学生对应项目的成绩
+    projectScores = table2array(dataset_score(i, scoreColIndices));
+    
+    % 分别计算目标1~3的达成度
+    for j = 1:3
+        achievementScores(i, j) = projectScores * targetWeights(:, j);
+    end
+end
+
+% 添加达成度列到原表格
+dataset_score.Achievement_Target1 = achievementScores(:, 1);
+dataset_score.Achievement_Target2 = achievementScores(:, 2);
+dataset_score.Achievement_Target3 = achievementScores(:, 3);
+
+% 排序（按总成绩降序）
+sortedDataset = sortrows(dataset_score, 'TotalScore', 'descend');
+
+% 构造输出路径
+outputDir = fullfile(currentDir, 'output');
+if ~exist(outputDir, 'dir')
+    mkdir(outputDir); % 如果 output 文件夹不存在，则创建
+end
+
+% 输出文件路径
+outputFile = fullfile(outputDir, '学生成绩达成度分析.xlsx');
+
+% 写入 Excel 文件
+writetable(sortedDataset, outputFile);
+
+% 显示保存信息
+disp(['已将达成度分析结果保存至：', outputFile]);
 
 
+%% 计算目标1~3的平均达成度及达成率
 
+% 定义目标名称和对应的占比值（从权重表提取）
+targetNames = {'目标1', '目标2', '目标3'};
+targetWeights = table2array(dataset_weight(end, 2:4)) * 100; % 合计行第2~4列为占比
+averageAchievement = mean(achievementScores, 1); % 求平均达成度分数
+
+% 创建空表格，预设字段和大小
+summaryTable = table('Size', [length(targetNames), 4], ...
+    'VariableTypes', {'double', 'double', 'double', 'double'}, ...
+    'VariableNames', {'target', 'val', 'ave_score', 'ave_per'});
+
+% 填充每项目标的数据
+for i = 1:length(targetNames)
+    summaryTable.target(i) = i; % 目标编号
+    summaryTable.val(i) = targetWeights(i); % 占比值
+    summaryTable.ave_score(i) = averageAchievement(i); % 平均分数
+    summaryTable.ave_per(i) = averageAchievement(i) / summaryTable.val(i) * 100; % 达成率
+end
+
+% 显示结果
+disp(summaryTable);
+
+% 输出路径配置
+outputDir = fullfile(currentDir, 'output');
+if ~exist(outputDir, 'dir')
+    mkdir(outputDir);
+end
+
+% 输出文件路径
+outputSummaryFile = fullfile(outputDir, '目标达成度统计分析.xlsx');
+
+% 写入 Excel 文件
+writetable(summaryTable, outputSummaryFile);
+
+% 提示保存路径
+disp(['已将目标达成度统计结果保存至：', outputSummaryFile]);
 
