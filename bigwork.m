@@ -2,9 +2,14 @@
 clc;clear;close;
 
 %% 设置file路径，存入变量
+% 获取当前脚本所在目录
+currentDir = fileparts(mfilename('fullpath'));
 
-file1 = ('D:\code\code02\matlab\bigwork\附件7-2023年2021级数学建模-期末考试成绩.xlsx');
-file2 = ('D:\code\code02\matlab\bigwork\数学建模权重.xlsx');
+% 设置data相对路径，防止调用的时文件路径不一致出错
+dataDir = fullfile(currentDir, 'data');
+
+file1 = fullfile(dataDir, '附件7-2023年2021级数学建模-期末考试成绩.xlsx');
+file2 = fullfile(dataDir, '数学建模权重.xlsx');
 
 %% 创建导入选项对象
 opts = detectImportOptions(file1);
@@ -25,7 +30,9 @@ disp(dataset_score.Properties.VariableTypes);
 
 % 清除临时变量opts
 clear opts varNames ;
+
 %% 判断并确定表格行列数
+
 temp1=readtable(file2);   %权重
 temp0=readtable(file1);   %成绩
 % 获得权重表格的行数m0(理论上=项目数+2)、列数n0(目标数+2)，注意默认读取时，权重table丢失第一行
@@ -33,6 +40,7 @@ temp0=readtable(file1);   %成绩
 % 获取成绩表格的行列数m1，n1，借此判断两个表格的项目数是否匹配
 [m1 n1]=size(temp0);
 clear temp0 temp1;
+
 %% 导入 权重.xlsx
 opts=spreadsheetImportOptions("NumVariables", n0);
 opts.VariableTypes{1}='char';
@@ -41,6 +49,7 @@ for i=2:n0
     opts.VariableTypes{i}='double';
 end
 dataset_weight=readtable(file2, opts);
+
 %%% 清除临时变量
 clear opts n VariableNames VariableTypes i temp;
 
