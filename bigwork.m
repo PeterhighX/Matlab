@@ -5,6 +5,7 @@ clc;clear;close;
 
 file1 = ('D:\code\code02\matlab\bigwork\附件7-2023年2021级数学建模-期末考试成绩.xlsx');
 file2 = ('D:\code\code02\matlab\bigwork\数学建模权重.xlsx');
+
 %% 创建导入选项对象
 opts = detectImportOptions(file1);
 opts.VariableNamingRule = 'preserve'; % 保留变量名
