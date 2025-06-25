@@ -193,7 +193,6 @@ achievementScores = zeros(height(dataset_score), 3);
 for i = 1:height(dataset_score)
     % 提取当前学生对应项目的成绩
     projectScores = table2array(dataset_score(i, scoreColIndices));
-    
     % 分别计算目标1~3的达成度
     for j = 1:3
         achievementScores(i, j) = projectScores * targetWeights(:, j);
