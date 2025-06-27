@@ -13,76 +13,215 @@ function GradeAnalysisApp()
     
     % 创建主布局 - 添加间距和内边距
     mainGrid = uigridlayout(fig, [1, 2]);
-    mainGrid.ColumnWidth = {300, '1x'};
+    mainGrid.ColumnWidth = {380, '1x'};
     mainGrid.Padding = [10, 10, 10, 10];
     mainGrid.RowSpacing = 10;
     mainGrid.ColumnSpacing = 10;
     
-    %% 左侧控制面板 - 圆角边框和背景色
+    %% 左侧控制面板 - 响应式网格布局
     leftPanel = uipanel(mainGrid, 'Title', '控制面板', 'BorderType', 'line', ...
                        'HighlightColor', [0.7, 0.7, 0.7], 'BackgroundColor', [0.98, 0.98, 0.98]);
     leftPanel.Layout.Row = 1;
     leftPanel.Layout.Column = 1;
     
-    % 文件选择区域 - 蓝色主题圆角边框
-    filePanel = uipanel(leftPanel, 'Title', '文件选择', 'Position', [10, 480, 280, 180], ...
+    % 创建左侧面板的网格布局
+    leftGrid = uigridlayout(leftPanel, [4, 1]);
+    leftGrid.RowHeight = {130, 260, 70, '1x'};  % 文件选择，权重编辑，操作控制，进度状态
+    leftGrid.Padding = [10, 10, 10, 10];
+    leftGrid.RowSpacing = 5;
+    
+    % 文件选择区域 - 响应式面板
+    filePanel = uipanel(leftGrid, 'Title', '文件选择', ...
                        'BorderType', 'line', 'HighlightColor', [0.5, 0.8, 1.0], ...
                        'BackgroundColor', [0.98, 0.99, 1.0]);
+    filePanel.Layout.Row = 1;
+    filePanel.Layout.Column = 1;
+    
+    % 文件选择区域内部网格布局
+    fileGrid = uigridlayout(filePanel, [3, 3]);
+    fileGrid.ColumnWidth = {80, '1x', 60};  % 标签，输入框，按钮
+    fileGrid.RowHeight = {25, 25, 25};
+    fileGrid.Padding = [10, 10, 10, 10];
+    fileGrid.RowSpacing = 5;
+    fileGrid.ColumnSpacing = 5;
     
     % 成绩文件
-    scoreFileLabel = uilabel(filePanel, 'Text', '成绩文件:', 'Position', [10, 140, 100, 22]);
-    scoreFileField = uieditfield(filePanel, 'text', 'Position', [10, 115, 180, 22]);
-    scoreFileBrowseBtn = uibutton(filePanel, 'push', 'Text', '浏览', 'Position', [200, 115, 60, 22], ...
+    scoreFileLabel = uilabel(fileGrid, 'Text', '成绩文件:');
+    scoreFileLabel.Layout.Row = 1;
+    scoreFileLabel.Layout.Column = 1;
+    
+    scoreFileField = uieditfield(fileGrid, 'text');
+    scoreFileField.Layout.Row = 1;
+    scoreFileField.Layout.Column = 2;
+    
+    scoreFileBrowseBtn = uibutton(fileGrid, 'push', 'Text', '浏览', ...
                                  'BackgroundColor', [0.9, 0.95, 1.0]);
+    scoreFileBrowseBtn.Layout.Row = 1;
+    scoreFileBrowseBtn.Layout.Column = 3;
     scoreFileBrowseBtn.ButtonPushedFcn = @(src, event) browseScoreFile();
     
     % 权重文件
-    weightFileLabel = uilabel(filePanel, 'Text', '权重文件:', 'Position', [10, 85, 100, 22]);
-    weightFileField = uieditfield(filePanel, 'text', 'Position', [10, 60, 180, 22]);
-    weightFileBrowseBtn = uibutton(filePanel, 'push', 'Text', '浏览', 'Position', [200, 60, 60, 22], ...
+    weightFileLabel = uilabel(fileGrid, 'Text', '权重文件:');
+    weightFileLabel.Layout.Row = 2;
+    weightFileLabel.Layout.Column = 1;
+    
+    weightFileField = uieditfield(fileGrid, 'text');
+    weightFileField.Layout.Row = 2;
+    weightFileField.Layout.Column = 2;
+    weightFileField.ValueChangedFcn = @(src, event) onWeightFileChanged();
+    
+    weightFileBrowseBtn = uibutton(fileGrid, 'push', 'Text', '浏览', ...
                                   'BackgroundColor', [0.9, 0.95, 1.0]);
+    weightFileBrowseBtn.Layout.Row = 2;
+    weightFileBrowseBtn.Layout.Column = 3;
     weightFileBrowseBtn.ButtonPushedFcn = @(src, event) browseWeightFile();
     
     % 输出目录
-    outputDirLabel = uilabel(filePanel, 'Text', '输出目录:', 'Position', [10, 30, 100, 22]);
-    outputDirField = uieditfield(filePanel, 'text', 'Position', [10, 5, 180, 22]);
-    outputDirBrowseBtn = uibutton(filePanel, 'push', 'Text', '浏览', 'Position', [200, 5, 60, 22], ...
+    outputDirLabel = uilabel(fileGrid, 'Text', '输出目录:');
+    outputDirLabel.Layout.Row = 3;
+    outputDirLabel.Layout.Column = 1;
+    
+    outputDirField = uieditfield(fileGrid, 'text');
+    outputDirField.Layout.Row = 3;
+    outputDirField.Layout.Column = 2;
+    
+    outputDirBrowseBtn = uibutton(fileGrid, 'push', 'Text', '浏览', ...
                                  'BackgroundColor', [0.9, 0.95, 1.0]);
+    outputDirBrowseBtn.Layout.Row = 3;
+    outputDirBrowseBtn.Layout.Column = 3;
     outputDirBrowseBtn.ButtonPushedFcn = @(src, event) browseOutputDir();
     
-    % 操作控制区域 - 绿色主题圆角边框
-    controlPanel = uipanel(leftPanel, 'Title', '操作控制', 'Position', [10, 345, 280, 130], ...
-                          'BorderType', 'line', 'HighlightColor', [0.5, 0.9, 0.5], ...
-                          'BackgroundColor', [0.98, 1.0, 0.98]);
+    %% 权重编辑区域 - 响应式面板
+    weightPanel = uipanel(leftGrid, 'Title', '权重编辑', ...
+                         'BorderType', 'line', 'HighlightColor', [0.8, 0.5, 1.0], ...
+                         'BackgroundColor', [0.99, 0.98, 1.0]);
+    weightPanel.Layout.Row = 2;
+    weightPanel.Layout.Column = 1;
     
-    runAnalysisBtn = uibutton(controlPanel, 'push', 'Text', '开始分析', ...
-                             'Position', [10, 70, 260, 35], 'FontWeight', 'bold', ...
+    % 权重编辑区域内部网格布局
+    weightGrid = uigridlayout(weightPanel, [3, 1]);
+    weightGrid.RowHeight = {35, 30, '1x'};  % 控制行，模式选择行，表格
+    weightGrid.Padding = [10, 10, 10, 10];
+    weightGrid.RowSpacing = 5;
+    
+    % 顶部控制区域
+    topControlGrid = uigridlayout(weightGrid, [1, 4]);
+    topControlGrid.ColumnWidth = {120, '1x', 50, 50};
+    topControlGrid.ColumnSpacing = 5;
+    topControlGrid.Layout.Row = 1;
+    topControlGrid.Layout.Column = 1;
+    
+    % 权重数据来源标签
+    weightModeLabel = uilabel(topControlGrid, 'Text', '权重数据来源:', 'FontSize', 10);
+    weightModeLabel.Layout.Row = 1;
+    weightModeLabel.Layout.Column = 1;
+    
+    % 占位符（为了对齐）
+    spacer = uilabel(topControlGrid, 'Text', '');
+    spacer.Layout.Row = 1;
+    spacer.Layout.Column = 2;
+    
+    % 权重表格控制按钮
+    loadWeightBtn = uibutton(topControlGrid, 'push', 'Text', '加载', ...
+                            'BackgroundColor', [0.9, 0.9, 1.0], 'FontSize', 9);
+    loadWeightBtn.Layout.Row = 1;
+    loadWeightBtn.Layout.Column = 3;
+    loadWeightBtn.ButtonPushedFcn = @(src, event) loadWeightData();
+    
+    saveWeightBtn = uibutton(topControlGrid, 'push', 'Text', '保存', ...
+                            'BackgroundColor', [0.9, 0.9, 1.0], 'FontSize', 9);
+    saveWeightBtn.Layout.Row = 1;
+    saveWeightBtn.Layout.Column = 4;
+    saveWeightBtn.ButtonPushedFcn = @(src, event) saveWeightData();
+    
+    % 权重数据模式选择
+    weightModeGroup = uibuttongroup(weightGrid, ...
+                                   'BackgroundColor', [0.99, 0.98, 1.0]);
+    weightModeGroup.Layout.Row = 2;
+    weightModeGroup.Layout.Column = 1;
+    
+    % 直接在ButtonGroup中使用Position定位（ButtonGroup不支持uigridlayout）
+    weightFromFileBtn = uiradiobutton(weightModeGroup, 'Text', '从文件读取', ...
+                                     'Position', [15, 5, 90, 20]);
+    
+    weightFromTableBtn = uiradiobutton(weightModeGroup, 'Text', '手动编辑', ...
+                                      'Position', [120, 5, 90, 20]);
+    
+    weightModeGroup.SelectedObject = weightFromFileBtn; % 默认选择文件模式
+    
+    % 权重表格
+    weightTable = uitable(weightGrid, ...
+                         'ColumnEditable', [false, true, true, true, false], ...
+                         'Enable', 'off');
+    weightTable.Layout.Row = 3;
+    weightTable.Layout.Column = 1;
+    
+    % 权重模式切换回调
+    weightModeGroup.SelectionChangedFcn = @(src, event) switchWeightMode();
+    
+    %%  操作控制区域 - 响应式面板
+    controlPanel = uipanel(leftGrid, 'Title', '', ...
+                          'BorderType', 'none', ...
+                          'BackgroundColor', [0.98, 0.98, 0.98]);
+    controlPanel.Layout.Row = 3;
+    controlPanel.Layout.Column = 1;
+    
+    % 操作控制内部网格布局
+    controlGrid = uigridlayout(controlPanel, [2, 2]);
+    controlGrid.RowHeight = {35, 25};
+    controlGrid.ColumnWidth = {'1x', '1x'};
+    controlGrid.Padding = [10, 5, 10, 5];
+    controlGrid.RowSpacing = 5;
+    controlGrid.ColumnSpacing = 5;
+    
+    runAnalysisBtn = uibutton(controlGrid, 'push', 'Text', '开始分析', ...
+                             'FontWeight', 'bold', ...
                              'BackgroundColor', [0.2, 0.7, 0.2], 'FontColor', 'white');
+    runAnalysisBtn.Layout.Row = 1;
+    runAnalysisBtn.Layout.Column = [1, 2];  % 跨两列
     runAnalysisBtn.ButtonPushedFcn = @(src, event) runAnalysis();
     
-    resetBtn = uibutton(controlPanel, 'push', 'Text', '重置', 'Position', [10, 25, 125, 30], ...
+    resetBtn = uibutton(controlGrid, 'push', 'Text', '重置', ...
                        'BackgroundColor', [0.9, 0.9, 0.9], 'FontColor', [0.3, 0.3, 0.3]);
+    resetBtn.Layout.Row = 2;
+    resetBtn.Layout.Column = 1;
     resetBtn.ButtonPushedFcn = @(src, event) resetApp();
     
-    exportBtn = uibutton(controlPanel, 'push', 'Text', '导出结果', ...
-                        'Position', [145, 25, 125, 30], 'Enable', 'off', ...
+    exportBtn = uibutton(controlGrid, 'push', 'Text', '导出结果', ...
+                        'Enable', 'off', ...
                         'BackgroundColor', [0.2, 0.5, 0.8], 'FontColor', 'white');
+    exportBtn.Layout.Row = 2;
+    exportBtn.Layout.Column = 2;
     exportBtn.ButtonPushedFcn = @(src, event) exportResults();
     
-    % 进度显示区域 - 橙色主题圆角边框
-    progressPanel = uipanel(leftPanel, 'Title', '进度状态', 'Position', [10, 40, 280, 300], ...
+    %% 进度显示区域 - 响应式面板
+    progressPanel = uipanel(leftGrid, 'Title', '进度状态', ...
                            'BorderType', 'line', 'HighlightColor', [1.0, 0.7, 0.3], ...
                            'BackgroundColor', [1.0, 0.99, 0.96]);
+    progressPanel.Layout.Row = 4;
+    progressPanel.Layout.Column = 1;
     
-    progressLabel = uilabel(progressPanel, 'Text', '就绪', 'FontWeight', 'bold', ...
-                           'Position', [10, 260, 260, 22], 'FontColor', [0.3, 0.3, 0.3]);
+    % 进度区域内部网格布局
+    progressGrid = uigridlayout(progressPanel, [3, 1]);
+    progressGrid.RowHeight = {20, 30, '1x'};  % 状态标签，进度条，消息区域
+    progressGrid.Padding = [8, 8, 8, 8];
+    progressGrid.RowSpacing = 5;
     
-    progressGauge = uigauge(progressPanel, 'linear', 'Limits', [0, 100], ...
-                           'Position', [10, 230, 260, 25], 'ScaleColors', [0.2, 0.7, 0.2]);
+    progressLabel = uilabel(progressGrid, 'Text', '就绪', 'FontWeight', 'bold', ...
+                           'FontColor', [0.3, 0.3, 0.3]);
+    progressLabel.Layout.Row = 1;
+    progressLabel.Layout.Column = 1;
     
-    statusArea = uitextarea(progressPanel, 'Position', [10, 10, 260, 210], ...
+    progressGauge = uigauge(progressGrid, 'linear', 'Limits', [0, 100], ...
+                           'ScaleColors', [0.2, 0.7, 0.2]);
+    progressGauge.Layout.Row = 2;
+    progressGauge.Layout.Column = 1;
+    
+    statusArea = uitextarea(progressGrid, ...
                            'Editable', 'off', 'Value', {'欢迎使用成绩分析系统！'}, ...
                            'BackgroundColor', [1.0, 1.0, 1.0]);
+    statusArea.Layout.Row = 3;
+    statusArea.Layout.Column = 1;
     
     %% 右侧结果显示面板 - 圆角边框
     rightPanel = uipanel(mainGrid, 'Title', '结果显示', 'BorderType', 'line', ...
@@ -124,6 +263,8 @@ function GradeAnalysisApp()
     ylabel(achievementChart, '达成度 (%)');
     achievementTable = uitable(achievementTab, 'Position', [10, 10, 620, 300]);
     
+
+    
     %% 初始化
     setupDefaultValues();
     
@@ -147,6 +288,14 @@ function GradeAnalysisApp()
         end
         
         outputDirField.Value = fullfile(currentDir, 'output');
+        
+        % 初始化权重表格
+        setupWeightTable();
+        
+        % 如果权重文件存在，自动加载数据
+        if ~isempty(weightFileField.Value) && exist(weightFileField.Value, 'file')
+            autoLoadWeightDataFromFile();
+        end
     end
     
     function browseScoreFile()
@@ -160,6 +309,17 @@ function GradeAnalysisApp()
         [file, path] = uigetfile({'*.xlsx;*.xls', 'Excel文件'}, '选择权重文件');
         if file ~= 0
             weightFileField.Value = fullfile(path, file);
+            % 自动加载权重数据到表格
+            autoLoadWeightDataFromFile();
+        end
+    end
+    
+    function onWeightFileChanged()
+        % 权重文件路径改变时的回调
+        if ~isempty(weightFileField.Value) && exist(weightFileField.Value, 'file')
+            autoLoadWeightDataFromFile();
+        elseif ~isempty(weightFileField.Value)
+            addStatusMessage('⚠ 指定的权重文件不存在');
         end
     end
     
@@ -182,10 +342,26 @@ function GradeAnalysisApp()
                 return;
             end
             
-            % 创建分析器对象 - 直接调用GradeAnalysisClass
-            appData.analyzer = GradeAnalysisClass(scoreFileField.Value, ...
-                                                 weightFileField.Value, ...
-                                                 outputDirField.Value);
+            % 检查权重数据来源
+            if weightModeGroup.SelectedObject == weightFromTableBtn
+                % 手动编辑模式 - 使用表格数据
+                addStatusMessage('使用手动编辑的权重数据...');
+                
+                % 先保存表格权重到临时文件
+                tempWeightFile = fullfile(outputDirField.Value, 'temp_weights.xlsx');
+                saveWeightToTempFile(tempWeightFile);
+                
+                % 创建分析器对象
+                appData.analyzer = GradeAnalysisClass(scoreFileField.Value, ...
+                                                     tempWeightFile, ...
+                                                     outputDirField.Value);
+            else
+                % 文件读取模式
+                addStatusMessage('使用权重文件数据...');
+                appData.analyzer = GradeAnalysisClass(scoreFileField.Value, ...
+                                                     weightFileField.Value, ...
+                                                     outputDirField.Value);
+            end
             
             % 设置进度回调
             appData.analyzer.setProgressCallback(@updateProgress);
@@ -202,6 +378,9 @@ function GradeAnalysisApp()
                 displayResults();
                 exportBtn.Enable = 'on';
                 addStatusMessage('✓ 分析完成！所有结果已保存。');
+                
+                % 清理临时文件
+                cleanupTempFiles();
             else
                 addStatusMessage('✗ 分析失败！');
             end
@@ -210,6 +389,7 @@ function GradeAnalysisApp()
             addStatusMessage(['✗ 错误: ' ME.message]);
             appData.isAnalysisComplete = false;
             exportBtn.Enable = 'off';
+            cleanupTempFiles();
         end
         
         % 始终恢复按钮状态（移到try-catch外部）
@@ -229,9 +409,68 @@ function GradeAnalysisApp()
         runAnalysisBtn.Text = '开始分析';
         exportBtn.Enable = 'off';
         
+        % 重置权重编辑状态
+        weightModeGroup.SelectedObject = weightFromFileBtn;
+        switchWeightMode();
+        
         % 清空结果显示
         clearResults();
         addStatusMessage('✓ 界面已重置，可以开始新的分析');
+    end
+    
+    function saveWeightToTempFile(tempFile)
+        % 保存权重表格数据到临时文件
+        try
+            tableData = weightTable.Data;
+            if isempty(tableData)
+                error('权重表格为空');
+            end
+            
+            % 确保输出目录存在
+            if ~exist(outputDirField.Value, 'dir')
+                mkdir(outputDirField.Value);
+            end
+            
+            % 创建标准格式的权重表格（带表头）
+            headers = {'项目', '目标1', '目标2', '目标3', '合计'};
+            
+            % 准备数据矩阵
+            projectNames = cell(5, 1);
+            projectNames{1} = headers{1};
+            for i = 1:4
+                projectNames{i+1} = tableData{i, 1};
+            end
+            
+            col2 = [headers{2}; num2cell(cell2mat(tableData(:, 2)))];
+            col3 = [headers{3}; num2cell(cell2mat(tableData(:, 3)))];
+            col4 = [headers{4}; num2cell(cell2mat(tableData(:, 4)))];
+            col5 = [headers{5}; num2cell(cell2mat(tableData(:, 5)))];
+            
+            % 转换为table并保存
+            T = table(string(projectNames), cell2mat(col2), ...
+                     cell2mat(col3), cell2mat(col4), ...
+                     cell2mat(col5), ...
+                     'VariableNames', headers);
+            
+            writetable(T, tempFile);
+            addStatusMessage(['✓ 权重数据已保存到临时文件: ' tempFile]);
+            
+        catch ME
+            error(['保存临时权重文件失败: ' ME.message]);
+        end
+    end
+    
+    function cleanupTempFiles()
+        % 清理临时文件
+        try
+            tempFile = fullfile(outputDirField.Value, 'temp_weights.xlsx');
+            if exist(tempFile, 'file')
+                delete(tempFile);
+                addStatusMessage('✓ 临时文件已清理');
+            end
+        catch ME
+            addStatusMessage(['⚠ 清理临时文件时出错: ' ME.message]);
+        end
     end
     
     function exportResults()
@@ -272,10 +511,36 @@ function GradeAnalysisApp()
             return;
         end
         
-        if isempty(weightFileField.Value) || ~exist(weightFileField.Value, 'file')
-            uialert(fig, '请选择有效的权重文件', '输入错误');
-            valid = false;
-            return;
+        % 检查权重数据来源
+        if weightModeGroup.SelectedObject == weightFromFileBtn
+            % 文件读取模式，需要验证权重文件
+            if isempty(weightFileField.Value) || ~exist(weightFileField.Value, 'file')
+                uialert(fig, '请选择有效的权重文件', '输入错误');
+                valid = false;
+                return;
+            end
+        else
+            % 手动编辑模式，验证权重表格数据
+            if isempty(weightTable.Data)
+                uialert(fig, '权重表格为空，请输入权重数据', '输入错误');
+                valid = false;
+                return;
+            end
+            
+            % 验证权重数据的合理性
+            try
+                tableData = weightTable.Data;
+                total = tableData{4, 5}; % 合计行的总权重
+                if abs(total - 1.0) > 0.01 && abs(total - 100) > 1
+                    uialert(fig, '权重总和应该等于1或100，请检查权重数据', '输入错误');
+                    valid = false;
+                    return;
+                end
+            catch
+                uialert(fig, '权重表格数据格式不正确，请检查', '输入错误');
+                valid = false;
+                return;
+            end
         end
         
         if isempty(outputDirField.Value)
@@ -356,6 +621,8 @@ function GradeAnalysisApp()
         end
     end
     
+
+    
     function clearResults()
         statsLabel1.Text = '学生总数: --';
         statsLabel2.Text = '平均分: --';
@@ -369,6 +636,237 @@ function GradeAnalysisApp()
         
         cla(gradeChart);
         cla(achievementChart);
+    end
+
+    %% 权重编辑相关函数
+    
+    function setupWeightTable()
+        % 初始化权重表格
+        defaultData = {
+            '考勤',   0.05, 0.05, 0.00, 0.10;
+            '平时作业', 0.10, 0.15, 0.05, 0.30;
+            '期末考试', 0.25, 0.20, 0.15, 0.60;
+            '合计',   0.40, 0.40, 0.20, 1.00
+        };
+        
+        weightTable.Data = defaultData;
+        weightTable.ColumnName = {'项目', '目标1', '目标2', '目标3', '合计'};
+        weightTable.ColumnWidth = {60, 45, 45, 45, 45};
+        weightTable.CellEditCallback = @validateWeightTable;
+        
+        % 设置行颜色
+        weightTable.BackgroundColor = [1 1 1; 0.95 0.95 1];
+    end
+    
+    function autoLoadWeightDataFromFile()
+        % 自动从权重文件加载数据到表格
+        try
+            if isempty(weightFileField.Value) || ~exist(weightFileField.Value, 'file')
+                addStatusMessage('⚠ 权重文件不存在，使用默认权重数据');
+                return;
+            end
+            
+            % 读取权重文件 - 使用VariableNamingRule为preserve保持原始列名
+            weightData = readtable(weightFileField.Value, 'VariableNamingRule', 'preserve');
+            [m, n] = size(weightData);
+            
+            if n < 5 || m < 4
+                addStatusMessage('⚠ 权重文件格式不正确，使用默认权重数据');
+                return;
+            end
+            
+            % 直接读取数据行（从第1行开始，因为readtable已经处理了标题）
+            tableData = cell(4, 5);
+            for i = 1:min(4, m)
+                % 第一列是项目名称
+                if iscell(weightData{i, 1})
+                    tableData{i, 1} = char(weightData{i, 1});
+                elseif isstring(weightData{i, 1})
+                    tableData{i, 1} = char(weightData{i, 1});
+                else
+                    tableData{i, 1} = char(string(weightData{i, 1}));
+                end
+                
+                % 后面是数值数据
+                for j = 2:5
+                    if j <= n
+                        tableData{i, j} = weightData{i, j};
+                    else
+                        tableData{i, j} = 0;
+                    end
+                end
+            end
+            
+            % 强制重新计算合计行
+            tableData{4, 1} = '合计';
+            for j = 2:4
+                total = 0;
+                for i = 1:3
+                    if isnumeric(tableData{i, j})
+                        total = total + tableData{i, j};
+                    end
+                end
+                tableData{4, j} = total;
+            end
+            tableData{4, 5} = sum(cell2mat(tableData(4, 2:4)));
+            
+            % 更新表格显示
+            weightTable.Data = tableData;
+            addStatusMessage(['✓ 已自动加载权重文件: ' char(extractAfter(weightFileField.Value, max(strfind(weightFileField.Value, filesep))))]);
+            
+        catch ME
+            addStatusMessage(['⚠ 自动加载权重文件失败: ' ME.message '，使用默认权重数据']);
+            fprintf('详细错误信息: %s\n', ME.getReport()); % 调试用
+        end
+    end
+    
+    function switchWeightMode()
+        % 切换权重数据模式
+        if weightModeGroup.SelectedObject == weightFromTableBtn
+            % 手动编辑模式
+            weightTable.Enable = 'on';
+            weightTable.ColumnEditable = [false, true, true, true, false];  % 可编辑
+            weightFileField.Enable = 'off';
+            weightFileBrowseBtn.Enable = 'off';
+            loadWeightBtn.Enable = 'off';
+            addStatusMessage('✓ 已切换到手动编辑权重模式');
+        else
+            % 文件读取模式 - 表格显示但不可编辑
+            weightTable.Enable = 'on';  % 显示数据
+            weightTable.ColumnEditable = [false, false, false, false, false];  % 不可编辑
+            weightFileField.Enable = 'on';
+            weightFileBrowseBtn.Enable = 'on';
+            loadWeightBtn.Enable = 'on';
+            addStatusMessage('✓ 已切换到文件读取权重模式');
+            
+            % 切换到文件模式时，如果有权重文件则自动加载
+            if ~isempty(weightFileField.Value) && exist(weightFileField.Value, 'file')
+                autoLoadWeightDataFromFile();
+            end
+        end
+    end
+    
+    function loadWeightData()
+        % 从文件加载权重数据到表格（手动点击"加载"按钮时调用）
+        try
+            if isempty(weightFileField.Value) || ~exist(weightFileField.Value, 'file')
+                uialert(fig, '请先选择有效的权重文件', '错误');
+                return;
+            end
+            
+            % 调用自动加载函数，保持逻辑一致
+            autoLoadWeightDataFromFile();
+            
+            % 显示成功消息
+            uialert(fig, '权重数据加载成功！', '成功', 'Icon', 'success');
+            
+        catch ME
+            addStatusMessage(['✗ 手动加载权重文件失败: ' ME.message]);
+            uialert(fig, ['加载失败: ' ME.message], '错误');
+        end
+    end
+    
+    function saveWeightData()
+        % 保存权重数据到文件
+        try
+            tableData = weightTable.Data;
+            if isempty(tableData)
+                uialert(fig, '权重表格为空，无法保存', '错误');
+                return;
+            end
+            
+            % 创建保存的权重表格
+            headers = {'项目', '目标1', '目标2', '目标3', '合计'};
+            weightSaveData = [headers; tableData];
+            
+            % 选择保存路径
+            [file, path] = uiputfile({'*.xlsx', 'Excel文件'}, '保存权重文件', ...
+                                    fullfile(pwd, 'data', '自定义权重.xlsx'));
+            if file == 0
+                return;
+            end
+            
+            saveFile = fullfile(path, file);
+            
+            % 转换为table并保存
+            T = table(string(tableData(:,1)), cell2mat(tableData(:,2)), ...
+                     cell2mat(tableData(:,3)), cell2mat(tableData(:,4)), ...
+                     cell2mat(tableData(:,5)), ...
+                     'VariableNames', headers);
+            
+            writetable(T, saveFile);
+            
+            % 更新权重文件路径
+            weightFileField.Value = saveFile;
+            
+            addStatusMessage(['✓ 权重数据已保存至: ' saveFile]);
+            uialert(fig, '权重数据保存成功！', '成功', 'Icon', 'success');
+            
+        catch ME
+            addStatusMessage(['✗ 保存权重文件失败: ' ME.message]);
+            uialert(fig, ['保存失败: ' ME.message], '错误');
+        end
+    end
+    
+    function validateWeightTable(src, event)
+        % 验证权重表格数据
+        try
+            if event.Indices(1) < 4  % 前三行项目权重
+                % 自动更新合计行
+                tableData = src.Data;
+                for j = 2:4  % 目标1-3列
+                    total = 0;
+                    for i = 1:3  % 前三行
+                        if ~isempty(tableData{i, j}) && isnumeric(tableData{i, j})
+                            total = total + tableData{i, j};
+                        end
+                    end
+                    tableData{4, j} = total;
+                end
+                
+                % 更新最后一列合计
+                for i = 1:4
+                    rowTotal = 0;
+                    for j = 2:4
+                        if ~isempty(tableData{i, j}) && isnumeric(tableData{i, j})
+                            rowTotal = rowTotal + tableData{i, j};
+                        end
+                    end
+                    tableData{i, 5} = rowTotal;
+                end
+                
+                src.Data = tableData;
+                
+                % 验证权重合理性
+                total = tableData{4, 5};
+                if abs(total - 1.0) > 0.01 && abs(total - 100) > 1
+                    addStatusMessage('⚠ 权重总和不等于1或100，请检查数据');
+                else
+                    addStatusMessage('✓ 权重数据已更新');
+                end
+            end
+        catch ME
+            addStatusMessage(['✗ 权重表格验证失败: ' ME.message]);
+        end
+    end
+    
+    function weightData = getWeightFromTable()
+        % 从表格获取权重数据，返回与文件格式兼容的table
+        try
+            tableData = weightTable.Data;
+            if isempty(tableData)
+                error('权重表格为空');
+            end
+            
+            % 创建与原始权重文件格式兼容的table
+            headers = {'项目', '目标1', '目标2', '目标3', '合计'};
+            weightData = table(string(tableData(:,1)), cell2mat(tableData(:,2)), ...
+                              cell2mat(tableData(:,3)), cell2mat(tableData(:,4)), ...
+                              cell2mat(tableData(:,5)), ...
+                              'VariableNames', headers);
+        catch ME
+            error(['获取权重数据失败: ' ME.message]);
+        end
     end
 
 end 
