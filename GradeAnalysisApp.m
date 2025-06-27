@@ -51,7 +51,7 @@ function GradeAnalysisApp()
     outputDirBrowseBtn.ButtonPushedFcn = @(src, event) browseOutputDir();
     
     % 操作控制区域 - 绿色主题圆角边框
-    controlPanel = uipanel(leftPanel, 'Title', '操作控制', 'Position', [10, 350, 280, 130], ...
+    controlPanel = uipanel(leftPanel, 'Title', '操作控制', 'Position', [10, 345, 280, 130], ...
                           'BorderType', 'line', 'HighlightColor', [0.5, 0.9, 0.5], ...
                           'BackgroundColor', [0.98, 1.0, 0.98]);
     
@@ -171,13 +171,14 @@ function GradeAnalysisApp()
     end
     
     function runAnalysis()
+        % 禁用按钮
+        runAnalysisBtn.Enable = 'off';
+        runAnalysisBtn.Text = '分析中...';
+        
         try
-            % 禁用按钮
-            runAnalysisBtn.Enable = 'off';
-            runAnalysisBtn.Text = '分析中...';
-            
             % 验证输入
             if ~validateInputs()
+                addStatusMessage('✗ 输入验证失败，请检查文件路径');
                 return;
             end
             
@@ -189,8 +190,9 @@ function GradeAnalysisApp()
             % 设置进度回调
             appData.analyzer.setProgressCallback(@updateProgress);
             
-            % 清空状态
+            % 清空状态并显示开始消息
             statusArea.Value = {''};
+            addStatusMessage('开始分析...');
             
             % 运行完整分析
             success = appData.analyzer.runCompleteAnalysis();
@@ -206,21 +208,30 @@ function GradeAnalysisApp()
             
         catch ME
             addStatusMessage(['✗ 错误: ' ME.message]);
-        finally
-            % 恢复按钮
-            runAnalysisBtn.Enable = 'on';
-            runAnalysisBtn.Text = '开始分析';
+            appData.isAnalysisComplete = false;
+            exportBtn.Enable = 'off';
         end
+        
+        % 始终恢复按钮状态（移到try-catch外部）
+        runAnalysisBtn.Enable = 'on';
+        runAnalysisBtn.Text = '开始分析';
     end
     
     function resetApp()
+        % 重置所有状态
         progressGauge.Value = 0;
         progressLabel.Text = '就绪';
         statusArea.Value = {''};
         appData.isAnalysisComplete = false;
+        
+        % 重置按钮状态
+        runAnalysisBtn.Enable = 'on';
+        runAnalysisBtn.Text = '开始分析';
         exportBtn.Enable = 'off';
+        
+        % 清空结果显示
         clearResults();
-        addStatusMessage('界面已重置');
+        addStatusMessage('✓ 界面已重置，可以开始新的分析');
     end
     
     function exportResults()
