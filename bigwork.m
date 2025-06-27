@@ -8,6 +8,9 @@ currentDir = fileparts(mfilename('fullpath'));
 % 设置data相对路径，防止调用的时文件路径不一致出错
 dataDir = fullfile(currentDir, 'data');
 
+% 打开 Workspace 窗口并显示当前工作区变量
+openvar('dataset_score');
+
 file1 = fullfile(dataDir, '附件7-2023年2021级数学建模-期末考试成绩.xlsx');
 file2 = fullfile(dataDir, '数学建模权重.xlsx');
 
@@ -261,3 +264,51 @@ writetable(summaryTable, outputSummaryFile);
 % 提示保存路径
 disp(['已将目标达成度统计结果保存至：', outputSummaryFile]);
 
+%% 根据学生最终总成绩，分为ABCDEF五档
+
+% 初始化 Grade 列
+sortedDataset.Grade = strings(height(sortedDataset), 1);
+
+% 分档逻辑
+for i = 1:height(sortedDataset)
+    score = sortedDataset.TotalScore(i);
+    if score >= 90
+        sortedDataset.Grade(i) = "A";
+    elseif score >= 80
+        sortedDataset.Grade(i) = "B";
+    elseif score >= 70
+        sortedDataset.Grade(i) = "C";
+    elseif score >= 60
+        sortedDataset.Grade(i) = "D";
+    else
+        sortedDataset.Grade(i) = "E";
+    end
+end
+
+% 显示带等级的成绩表（去掉 '姓名'）
+disp("学生等级分布：");
+disp(sortedDataset(:, {'TotalScore', 'Grade'}));
+
+% 统计各等级人数
+grades = ["A", "B", "C", "D", "E"];
+gradeCounts = zeros(size(grades));
+for i = 1:length(grades)
+    gradeCounts(i) = sum(strcmp(sortedDataset.Grade, grades(i)));
+end
+
+% 创建统计表格
+gradeSummaryTable = table(grades', gradeCounts', ...
+    'VariableNames', {'Grade', 'Count'});
+
+% 构造输出路径
+outputDir = fullfile(currentDir, 'output');
+
+% 输出文件路径
+outputFile = fullfile(outputDir, '学生成绩等级分布.xlsx');
+
+% 写入 Excel 文件（去掉 '姓名'）
+writetable(sortedDataset(:, {'TotalScore', 'Grade'}), outputFile, 'Sheet', '成绩等级明细');
+writetable(gradeSummaryTable, outputFile, 'Sheet', '等级人数统计', 'WriteMode', 'append');
+
+% 提示保存路径
+disp(['已将成绩等级分布保存至：', outputFile]);
