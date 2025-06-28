@@ -3,6 +3,7 @@
 ## 项目概述
 
 本项目是一个基于MATLAB的成绩分析系统，专门用于教学评价和课程目标达成度分析。系统提供图形界面和命令行两种使用方式，能够自动处理学生成绩数据、计算目标达成度、生成统计报表和Word分析报告。
+项目地址：https://github.com/PeterhighX/Matlab/edit/ver-1.4-(input_improve)
 
 ## 主要功能
 
