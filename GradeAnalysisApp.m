@@ -26,7 +26,7 @@ function GradeAnalysisApp()
     
     % 创建左侧面板的网格布局
     leftGrid = uigridlayout(leftPanel, [4, 1]);
-    leftGrid.RowHeight = {130, 260, 70, '1x'};  % 文件选择，权重编辑，操作控制，进度状态
+    leftGrid.RowHeight = {130, 260, 105, '1x'};  % 文件选择，权重编辑，操作控制，进度状态
     leftGrid.Padding = [10, 10, 10, 10];
     leftGrid.RowSpacing = 5;
     
@@ -167,8 +167,8 @@ function GradeAnalysisApp()
     controlPanel.Layout.Column = 1;
     
     % 操作控制内部网格布局
-    controlGrid = uigridlayout(controlPanel, [2, 2]);
-    controlGrid.RowHeight = {35, 25};
+    controlGrid = uigridlayout(controlPanel, [3, 2]);
+    controlGrid.RowHeight = {35, 25, 35};
     controlGrid.ColumnWidth = {'1x', '1x'};
     controlGrid.Padding = [10, 5, 10, 5];
     controlGrid.RowSpacing = 5;
@@ -193,6 +193,14 @@ function GradeAnalysisApp()
     exportBtn.Layout.Row = 2;
     exportBtn.Layout.Column = 2;
     exportBtn.ButtonPushedFcn = @(src, event) exportResults();
+    
+    % 添加生成Word报告按钮
+    generateReportBtn = uibutton(controlGrid, 'push', 'Text', '生成Word报告', ...
+                                'Enable', 'off', ...
+                                'BackgroundColor', [0.8, 0.2, 0.5], 'FontColor', 'white');
+    generateReportBtn.Layout.Row = 3;
+    generateReportBtn.Layout.Column = [1, 2];  % 跨两列
+    generateReportBtn.ButtonPushedFcn = @(src, event) generateWordReport();
     
     %% 进度显示区域 - 响应式面板
     progressPanel = uipanel(leftGrid, 'Title', '进度状态', ...
@@ -375,9 +383,29 @@ function GradeAnalysisApp()
             
             if success
                 appData.isAnalysisComplete = true;
+                
+                % 生成横向树状表格
+                try
+                    addStatusMessage('生成横向树状表格...');
+                    appData.analyzer.generateHorizontalTreeTable();
+                    addStatusMessage('✓ 横向树状表格生成完成');
+                catch ME
+                    addStatusMessage(['⚠ 横向树状表格生成失败: ' ME.message]);
+                end
+                
+                % 生成目标达成度等级统计表格
+                try
+                    addStatusMessage('生成目标达成度等级统计表格...');
+                    appData.analyzer.generateAchievementLevelTable();
+                    addStatusMessage('✓ 目标达成度等级统计表格生成完成');
+                catch ME
+                    addStatusMessage(['⚠ 目标达成度等级统计表格生成失败: ' ME.message]);
+                end
+                
                 displayResults();
                 exportBtn.Enable = 'on';
-                addStatusMessage('✓ 分析完成！所有结果已保存。');
+                generateReportBtn.Enable = 'on';
+                addStatusMessage('✓ 分析完成！所有结果已保存，包括新增的两个统计表格。');
                 
                 % 清理临时文件
                 cleanupTempFiles();
@@ -389,6 +417,7 @@ function GradeAnalysisApp()
             addStatusMessage(['✗ 错误: ' ME.message]);
             appData.isAnalysisComplete = false;
             exportBtn.Enable = 'off';
+            generateReportBtn.Enable = 'off';
             cleanupTempFiles();
         end
         
@@ -408,6 +437,7 @@ function GradeAnalysisApp()
         runAnalysisBtn.Enable = 'on';
         runAnalysisBtn.Text = '开始分析';
         exportBtn.Enable = 'off';
+        generateReportBtn.Enable = 'off';
         
         % 重置权重编辑状态
         weightModeGroup.SelectedObject = weightFromFileBtn;
@@ -500,6 +530,47 @@ function GradeAnalysisApp()
         catch ME
             uialert(fig, ['导出失败: ' ME.message], '错误');
         end
+    end
+    
+    function generateWordReport()
+        if ~appData.isAnalysisComplete
+            uialert(fig, '请先完成分析', '提示');
+            return;
+        end
+        
+        % 禁用按钮
+        generateReportBtn.Enable = 'off';
+        generateReportBtn.Text = '生成中...';
+        
+        try
+            addStatusMessage('开始生成Word报告...');
+            
+            % 创建LaTeX报告生成器，指定模板文件
+            templateFile = fullfile('refer_word', '附件4.课程目标达成情况分析报告模板.tex');
+            reportGenerator = LaTeXReportGenerator(appData.analyzer.getOutputDir(), templateFile);
+            
+            % 设置进度回调
+            reportGenerator.setProgressCallback(@updateProgress);
+            
+            % 生成Word报告
+            success = reportGenerator.generateWordReport(appData.analyzer);
+            
+            if success
+                addStatusMessage('✓ Word报告生成完成！');
+                uialert(fig, 'Word报告已成功生成到输出目录', '生成成功', 'Icon', 'success');
+            else
+                addStatusMessage('✗ Word报告生成失败');
+                uialert(fig, 'Word报告生成失败，请查看状态信息', '生成失败');
+            end
+            
+        catch ME
+            addStatusMessage(['✗ 生成Word报告时出错: ' ME.message]);
+            uialert(fig, ['生成失败: ' ME.message], '错误');
+        end
+        
+        % 恢复按钮状态
+        generateReportBtn.Enable = 'on';
+        generateReportBtn.Text = '生成Word报告';
     end
     
     function valid = validateInputs()

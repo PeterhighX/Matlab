@@ -43,6 +43,14 @@ function test_analysis_class()
             fprintf('  %s级: %.1f%%\n', grades{i}, stats.GradeDistribution(grades{i}));
         end
         
+        % 生成横向树状表格
+        fprintf('\n生成横向树状表格...\n');
+        analyzer.generateHorizontalTreeTable();
+        
+        % 生成目标达成度等级统计表格
+        fprintf('\n生成目标达成度等级统计表格...\n');
+        analyzer.generateAchievementLevelTable();
+        
         fprintf('\n所有结果已保存到 output 文件夹\n');
     else
         fprintf('分析失败！\n');

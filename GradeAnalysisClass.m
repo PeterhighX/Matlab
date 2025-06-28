@@ -141,6 +141,186 @@ classdef GradeAnalysisClass < handle
             % 回调函数格式: function callback(message, percentage)
             obj.ProgressCallback = callback;
         end
+        
+        function outputDir = getOutputDir(obj)
+            % 获取输出目录路径
+            outputDir = obj.OutputDir;
+        end
+        
+        function generateHorizontalTreeTable(obj)
+            % 生成横向树状表格
+            % 表格包含：目标 | 评价方式 | 权重 | 总分值 | 平均得分 | 达成情况
+            
+            if ~obj.IsAnalysisComplete
+                error('分析尚未完成，请先运行 runCompleteAnalysis()');
+            end
+            
+            try
+                % 获取权重数据和目标表头
+                weightData = obj.DatasetWeight;
+                
+                % 直接设置目标名称为目标1~3
+                targetHeaders = {'目标1', '目标2', '目标3'};
+                
+                % 获取评价方式名称（第2-4行，第1列）
+                evaluationMethods = table2array(weightData(2:4, 1));
+                
+                % 获取权重值（第2-4行，第2-4列）
+                weightValues = table2array(weightData(2:4, 2:4));
+                
+                % 获取目标达成度数据
+                targetFile = fullfile(obj.OutputDir, '目标达成度分析.xlsx');
+                targetSummary = readtable(targetFile);
+                avePerValues = targetSummary.ave_per; % 达成情况百分比
+                
+                % 计算每个评价方式的平均得分
+                % 基于Achievement_Target1~3的平均值和权重占比
+                avgTargetScores = mean(obj.AchievementScores, 1); % 每个目标的平均达成分数
+                
+                % 创建结果表格
+                numRows = 0;
+                for i = 1:3
+                    numRows = numRows + length(evaluationMethods);
+                end
+                
+                % 初始化结果数组
+                resultData = cell(numRows, 6);
+                rowIdx = 1;
+                
+                % 填充数据
+                for target = 1:3
+                    targetName = targetHeaders{target};
+                    
+                    for method = 1:length(evaluationMethods)
+                        % 目标名称（仅在每个目标的第一行显示）
+                        if method == 1
+                            resultData{rowIdx, 1} = targetName;
+                        else
+                            resultData{rowIdx, 1} = '';
+                        end
+                        
+                        % 评价方式
+                        resultData{rowIdx, 2} = evaluationMethods{method};
+                        
+                        % 权重（百分比）
+                        weight = weightValues(method, target);
+                        resultData{rowIdx, 3} = sprintf('%.1f%%', weight * 100);
+                        
+                        % 总分值（100分 * 权重）
+                        totalScore = 100 * weight;
+                        resultData{rowIdx, 4} = sprintf('%.1f', totalScore);
+                        
+                        % 平均得分（目标平均分 * 该评价方式在该目标中的权重占比）
+                        % 计算该评价方式在当前目标中的权重占比
+                        targetTotalWeight = sum(weightValues(:, target));
+                        methodRatio = weight / targetTotalWeight;
+                        avgScore = avgTargetScores(target) * methodRatio;
+                        resultData{rowIdx, 5} = sprintf('%.2f', avgScore);
+                        
+                        % 达成情况（仅在每个目标的第一行显示）
+                        if method == 1
+                            resultData{rowIdx, 6} = sprintf('%.2f%%', avePerValues(target));
+                        else
+                            resultData{rowIdx, 6} = '';
+                        end
+                        
+                        rowIdx = rowIdx + 1;
+                    end
+                end
+                
+                % 创建表格
+                columnNames = {'目标', '评价方式', '权重', '总分值', '平均得分', '达成情况'};
+                resultTable = cell2table(resultData, 'VariableNames', columnNames);
+                
+                % 保存到Excel文件
+                outputFile = fullfile(obj.OutputDir, '目标评价横向树状表.xlsx');
+                writetable(resultTable, outputFile);
+                
+                % 更新进度
+                obj.updateProgress('横向树状表格生成完成', 100);
+                fprintf('横向树状表格已保存至：%s\n', outputFile);
+                
+            catch ME
+                obj.updateProgress(['生成横向树状表格时出错: ' ME.message], -1);
+                rethrow(ME);
+            end
+        end
+        
+        function generateAchievementLevelTable(obj)
+            % 生成目标达成度等级统计表格
+            % 表格包含：目标 | 完全达成 | 较好达成 | 基本达成 | 未达成 | 达成情况
+            
+            if ~obj.IsAnalysisComplete
+                error('分析尚未完成，请先运行 runCompleteAnalysis()');
+            end
+            
+            try
+                % 获取权重数据
+                weightData = obj.DatasetWeight;
+                
+                % 获取目标1~3的权重总分（权重值*100）
+                targetWeightValues = table2array(weightData(end, 2:4)) * 100; % 合计行第2~4列
+                
+                % 计算学生总数
+                totalStudents = height(obj.DatasetScore);
+                
+                % 创建结果表格
+                obj.updateProgress('分析目标达成度等级...', 85);
+                
+                % 初始化结果数组
+                resultData = cell(3, 6); % 3个目标 × 6列
+                
+                % 定义目标名称
+                targetNames = {'目标1', '目标2', '目标3'};
+                
+                % 分析每个目标
+                for target = 1:3
+                    targetName = targetNames{target};
+                    targetScore = targetWeightValues(target); % 该目标的总分
+                    studentAchievements = obj.AchievementScores(:, target); % 学生在该目标上的得分
+                    
+                    % 计算每个学生在该目标上的达成度百分比
+                    achievementRatios = studentAchievements / targetScore * 100;
+                    
+                    % 统计各达成等级的人数
+                    completeCount = sum(achievementRatios >= 90); % 完全达成（90%以上）
+                    goodCount = sum(achievementRatios >= 80 & achievementRatios < 90); % 较好达成（80%-90%）
+                    basicCount = sum(achievementRatios >= 60 & achievementRatios < 80); % 基本达成（60%-80%）
+                    failCount = sum(achievementRatios < 60); % 未达成（60%以下）
+                    
+                    % 计算达成情况
+                    % （完全达成*4+较好达成*3+基本达成*2+未达成*1）/（总人数*4）
+                    achievementLevel = (completeCount * 4 + goodCount * 3 + basicCount * 2 + failCount * 1) / (totalStudents * 4);
+                    
+                    % 填充结果数据
+                    resultData{target, 1} = targetName;                                  % 目标
+                    resultData{target, 2} = sprintf('%d (%.1f%%)', completeCount, completeCount/totalStudents*100); % 完全达成
+                    resultData{target, 3} = sprintf('%d (%.1f%%)', goodCount, goodCount/totalStudents*100);         % 较好达成
+                    resultData{target, 4} = sprintf('%d (%.1f%%)', basicCount, basicCount/totalStudents*100);       % 基本达成
+                    resultData{target, 5} = sprintf('%d (%.1f%%)', failCount, failCount/totalStudents*100);         % 未达成
+                    resultData{target, 6} = sprintf('%.3f (%.1f%%)', achievementLevel, achievementLevel*100);       % 达成情况
+                end
+                
+                % 创建表格
+                columnNames = {'目标', '完全达成', '较好达成', '基本达成', '未达成', '达成情况'};
+                resultTable = cell2table(resultData, 'VariableNames', columnNames);
+                
+                % 保存到Excel文件
+                outputFile = fullfile(obj.OutputDir, '目标达成度等级统计表.xlsx');
+                writetable(resultTable, outputFile);
+                
+                % 将结果保存到类属性中
+                obj.AnalysisResults.AchievementLevelTable = resultTable;
+                
+                % 更新进度
+                obj.updateProgress('目标达成度等级统计表生成完成', 100);
+                fprintf('目标达成度等级统计表已保存至：%s\n', outputFile);
+                
+            catch ME
+                obj.updateProgress(['生成目标达成度等级统计表时出错: ' ME.message], -1);
+                rethrow(ME);
+            end
+        end
     end
     
     methods (Access = private)
