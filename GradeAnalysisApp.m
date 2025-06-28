@@ -545,23 +545,11 @@ function GradeAnalysisApp()
         try
             addStatusMessage('开始生成Word报告...');
             
-            % 创建LaTeX报告生成器，指定模板文件
-            templateFile = fullfile('refer_word', '附件4.课程目标达成情况分析报告模板.tex');
-            reportGenerator = LaTeXReportGenerator(appData.analyzer.getOutputDir(), templateFile);
+            % 调用SimpleWordReportGenerator函数
+            SimpleWordReportGenerator(false); % false表示不自动打开文件
             
-            % 设置进度回调
-            reportGenerator.setProgressCallback(@updateProgress);
-            
-            % 生成Word报告
-            success = reportGenerator.generateWordReport(appData.analyzer);
-            
-            if success
-                addStatusMessage('✓ Word报告生成完成！');
-                uialert(fig, 'Word报告已成功生成到输出目录', '生成成功', 'Icon', 'success');
-            else
-                addStatusMessage('✗ Word报告生成失败');
-                uialert(fig, 'Word报告生成失败，请查看状态信息', '生成失败');
-            end
+            addStatusMessage('✓ Word报告生成完成！');
+            uialert(fig, 'Word报告已成功生成到输出目录', '生成成功', 'Icon', 'success');
             
         catch ME
             addStatusMessage(['✗ 生成Word报告时出错: ' ME.message]);

@@ -1,4 +1,4 @@
-function generateWordReport()
+function SimpleWordReportGenerator(autoOpen)
     % SimpleWordReportGenerator - 简化的Word报告生成器
     % 
     % 功能：
@@ -8,8 +8,16 @@ function generateWordReport()
     %   - 在{定量评价表格}位置插入"目标评价横向树状表.xlsx"
     %   - 在{定性评价表格}位置插入"目标达成度等级统计表.xlsx"
     %
+    % 参数：
+    %   autoOpen - (可选) true表示自动打开生成的文件，false或不提供则不打开
+    %
     % 使用方法：
-    %   generateWordReport()  % 使用默认路径
+    %   SimpleWordReportGenerator()        % 使用默认路径，不自动打开
+    %   SimpleWordReportGenerator(true)    % 使用默认路径，自动打开文件
+    
+    if nargin < 1
+        autoOpen = false;
+    end
     
     fprintf('=== 开始生成Word分析报告 ===\n');
     
@@ -76,10 +84,22 @@ function generateWordReport()
                 fprintf('✓ 文件大小: %.2f KB\n', fileInfo.bytes / 1024);
             end
             
-            % 询问是否打开文件
-            response = input('是否打开生成的报告？ (y/n): ', 's');
-            if strcmpi(response, 'y')
-                system(['start "" "' outputPath '"']);
+            % 根据参数决定是否自动打开文件
+            fprintf('✓ 报告生成完成，文件位置: %s\n', outputPath);
+            
+            if autoOpen
+                try
+                    if ispc
+                        system(['start "" "' outputPath '"']);
+                    elseif ismac
+                        system(['open "' outputPath '"']);
+                    else
+                        system(['xdg-open "' outputPath '"']);
+                    end
+                    fprintf('✓ 正在自动打开报告文件...\n');
+                catch
+                    fprintf('✗ 无法自动打开文件，请手动打开: %s\n', outputPath);
+                end
             end
         else
             fprintf('✗ Word报告生成失败\n');
